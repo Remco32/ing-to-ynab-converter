@@ -63,9 +63,11 @@ void reformatAndPrintString(char *input, FILE *outputFilePointer) {
         input += 3;
     }
 
+    /*
     for (i = 0; i <= AMOUNTOFSLOTS; i++) {
         printf("In slot %d sits %s\n", i, seperatedInput[i]);
     }
+     */
 
     //reformat date
     reformatDate(seperatedInput[0]);
@@ -86,6 +88,7 @@ void reformatAndPrintString(char *input, FILE *outputFilePointer) {
      */
 
 
+    //TODO Change amount comma to dot
 
     if (strcmp(selectedAccount, seperatedInput[2]) == 0) { //exact match with input
         //print to file
