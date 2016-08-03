@@ -2,46 +2,17 @@
 #include <string.h>
 #include <stdlib.h>
 
-#define MAXSTRING 30 //limit for a single slot is 30
-#define AMOUNTOFSLOTS 19 //rabo uses 19 slots
+//TODO find right values
+#define MAXSTRING 600 //limit for a single slot
+#define AMOUNTOFSLOTS 8 //ING uses 9 slots
 #define MAXFULLSTRING 600 //limit for the whole string is MAXSTRING*AMOUNTOFSLOTS
 
 char selectedAccount[MAXSTRING];
 
 
-/*	Remco Pronk, 26-07-16 
-	Converts the bankstatement format of the Rabobank to a csv-file that is readable by YNAB */
+/*	Remco Pronk, 04-08-16
+	Converts the bankstatement format of the ING bank to a csv-file that is readable by YNAB */
 
-/* inputfile format
-
-12 columns of importance
-account# (IBAN) || Currency || Date (yyyymmdd) || Debet/Credit || value (3.00) || receiver account# (IBAN) ||
-Receiver (Name) || Date || type (ba, bg, etc) || ??? (empty) || description || comment
-
-Example 1:
-"NL12RABO3456789012","EUR","20140318","D","3.00","","","20140318","ba","","Rest Bernoulliborg GRONINGEN","Betaalautomaat 14:42 pasnr. 004","","","","","","",""
-
-Example 2:
-"NL12RABO3456789012","EUR","20140320","C","8.84","NL98RABO7654321012","HEKSTRA J A","20140320","cb","","examenbundel","","","","","","SCT2014031937154000000002001","",""
-
-*/
-
-/* outputDatumfile format:
-
-6 colums, with first line being how the csv-file is formatted
-
-Date,Payee,Category,Memo,Outflow,Inflow
-date (dd/mm/yyyy) || from/to || category (YNAB) || comment || outflow (100.00) || inflow (50.00)
-
-Example 1 result:
-"NL12RABO3456789012","EUR","20140318","D","3.00","","","20140318","ba","","Rest Bernoulliborg GRONINGEN","Betaalautomaat 14:42 pasnr. 004","","","","","","",""
-18/03/2014, Rest Bernoulliborg GRONINGEN, , Betaalautomaat 14:42 pasnr. 004, 3.00, ,
-
-Example 2 result:
-"NL12RABO3456789012","EUR","20140320","C","8.84","NL98RABO7654321012","HEKSTRA J A","20140320","cb","","examenbundel","","","","","","SCT2014031937154000000002001","",""
-20/03/2014, HEKSTRA J A, , examenbundel, , 8.84
-
-*/
 
 void reformatDate(char *date) {
     char reformattedDate[11];
@@ -75,7 +46,8 @@ void reformatDate(char *date) {
 
 void reformatAndPrintString(char *input, FILE *outputFilePointer) {
     int i; // iterator variable
-    char seperatedInput[AMOUNTOFSLOTS][MAXSTRING]; // location to save the seperated data (date, amount, etc) from the input.
+    char seperatedInput[
+            AMOUNTOFSLOTS + 1][MAXSTRING]; // location to save the seperated data (date, amount, etc) from the input.
 
     //empty array at start
     memset(seperatedInput, 0, sizeof seperatedInput);
@@ -84,16 +56,21 @@ void reformatAndPrintString(char *input, FILE *outputFilePointer) {
     input++;
 
     //read input to the array
-    for (i = 0; i < AMOUNTOFSLOTS; i++) {
+    for (i = 0; i <= AMOUNTOFSLOTS; i++) {
         sscanf(input, "%[^'\"']", seperatedInput[i]);
         input = strchr(input, '\"');
         //Skip the next quotationmark, comma and quotationmark by moving the pointer forwards
         input += 3;
     }
 
-    //reformat date
-    reformatDate(seperatedInput[2]);
+    for (i = 0; i <= AMOUNTOFSLOTS; i++) {
+        printf("In slot %d sits %s\n", i, seperatedInput[i]);
+    }
 
+    //reformat date
+    reformatDate(seperatedInput[0]);
+
+    /*
     //if there is no receiver , then it is a pin transaction: receiver becomes memo field, 2nd memo becomes first memo
     if (seperatedInput[6][0] == NULL) {
         printf("There was no receiver field: this is a pin transaction.\n");
@@ -106,24 +83,28 @@ void reformatAndPrintString(char *input, FILE *outputFilePointer) {
 
         //printf("Strings are now %s and %s\n", seperatedInput[6], seperatedInput[10]);
     }
+     */
 
-    if (strcmp(selectedAccount, seperatedInput[0]) == 0) { //exact match with input
+
+
+    if (strcmp(selectedAccount, seperatedInput[2]) == 0) { //exact match with input
         //print to file
         //Output order is different for credit and debet
-        if (seperatedInput[3][0] == 'C') {
-            printf("(Date) %s || (Name SENDER) %s || (Category) || (Comment) %s%s || (Outflow) || (Inflow) %s\n\n",
-                   seperatedInput[2], seperatedInput[6], seperatedInput[10], seperatedInput[11], seperatedInput[4]);
+        if (seperatedInput[5][0] == 'A') {
+            printf("(Date) %s || (Name SENDER) %s || (Category) || (Comment) %s || (Outflow) || (Inflow) %s\n\n",
+                   seperatedInput[0], seperatedInput[1], seperatedInput[8], seperatedInput[6]);
             //We don't fill in the category slot
-            fprintf(outputFilePointer, "%s,%s,,%s%s,,%s\n", seperatedInput[2], seperatedInput[6], seperatedInput[10],
-                    seperatedInput[11], seperatedInput[4]);
+            fprintf(outputFilePointer, "%s,%s,,%s,,%s\n", seperatedInput[0], seperatedInput[1], seperatedInput[8],
+                    seperatedInput[6]);
         }
-        if (seperatedInput[3][0] == 'D') {
-            printf("(Date) %s || (Name RECEIVER) %s || (Category) || (Comment) %s%s || (Outflow) %s || (Inflow) \n\n",
-                   seperatedInput[2], seperatedInput[6], seperatedInput[10], seperatedInput[11], seperatedInput[4]);
-            fprintf(outputFilePointer, "%s,%s,,%s%s,%s,\n", seperatedInput[2], seperatedInput[6], seperatedInput[10],
-                    seperatedInput[11], seperatedInput[4]);
+        if (seperatedInput[5][0] == 'B') {
+            printf("(Date) %s || (Name RECEIVER) %s || (Category) || (Comment) %s || (Outflow) %s || (Inflow) \n\n",
+                   seperatedInput[0], seperatedInput[1], seperatedInput[8], seperatedInput[6]);
+            fprintf(outputFilePointer, "%s,%s,,%s,%s,\n", seperatedInput[0], seperatedInput[1], seperatedInput[8],
+                    seperatedInput[6]);
         }
     }
+
 }
 
 void readInput(FILE *ifp, FILE *ofp) {
@@ -131,14 +112,14 @@ void readInput(FILE *ifp, FILE *ofp) {
 
     //Print first line
     fprintf(ofp, "Date,Payee,Category,Memo,Outflow,Inflow\n");
+    //skips first line, ING only
+    fgets(inputLine, MAXFULLSTRING, ifp);
     do {
         fscanf(ifp, "%[^\n]", inputLine);
-        //Rabobank transaction files end with an empty line, we catch that here
-        if (strlen(inputLine) == 1) {
-            return;
-        }
+
         //reformat the the line we just read
         reformatAndPrintString(inputLine, ofp);
+
     } while (fgets(inputLine, MAXFULLSTRING, ifp) != NULL); //scan next line
 
     //Done with the file, close it.
@@ -152,7 +133,6 @@ void stopProgramAfterInput() {
 }
 
 void readSettings() {
-    //TODO make universal by making user provide the slot of each piece of information, and adding flags for certain cleanups (i.e remove quotationmarks, commas, etc)
     FILE *fpSettings = fopen("settingsYNABConverter.ini", "r+"); //Allow reading AND writing
     if (fpSettings) {
         char input[MAXFULLSTRING];
@@ -178,18 +158,19 @@ void readSettings() {
     }
 }
 
-//TODO clean up main: make functions
 int main(int argc, char *argv[]) {
     //reserve memory for input and output
     FILE *ifp;
     FILE *ofp;
+
+    readSettings();
 
     //In case of no inputfile given, the program can not work.
     if (argv[1] == NULL) {
         printf("There was no inputfile.\nDrag and drop a file unto the executable to process it.\n");
         stopProgramAfterInput();
     }
-    readSettings();
+
 
 
     //Open the inputfile and save it to inputFilePointer
