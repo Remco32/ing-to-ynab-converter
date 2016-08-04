@@ -13,6 +13,14 @@ char selectedAccount[MAXSTRING];
 /*	Remco Pronk, 04-08-16
 	Converts the bankstatement format of the ING bank to a csv-file that is readable by YNAB */
 
+void replaceCommaToDot(char *amount) {
+    int i = 0;
+    for (i; i <= strlen(amount); i++) {
+        if (amount[i] == ',') {
+            amount[i] = '.';
+        }
+    }
+}
 
 void reformatDate(char *date) {
     char reformattedDate[11];
@@ -63,32 +71,12 @@ void reformatAndPrintString(char *input, FILE *outputFilePointer) {
         input += 3;
     }
 
-    /*
-    for (i = 0; i <= AMOUNTOFSLOTS; i++) {
-        printf("In slot %d sits %s\n", i, seperatedInput[i]);
-    }
-     */
 
     //reformat date
     reformatDate(seperatedInput[0]);
 
-    /*
-    //if there is no receiver , then it is a pin transaction: receiver becomes memo field, 2nd memo becomes first memo
-    if (seperatedInput[6][0] == NULL) {
-        printf("There was no receiver field: this is a pin transaction.\n");
-
-        strncpy(seperatedInput[6], seperatedInput[10], MAXSTRING);
-
-        //empty memo1 - only memo2 gets printed this way
-        memset(seperatedInput[10], 0, MAXSTRING);
-
-
-        //printf("Strings are now %s and %s\n", seperatedInput[6], seperatedInput[10]);
-    }
-     */
-
-
     //TODO Change amount comma to dot
+    replaceCommaToDot(seperatedInput[6]);
 
     if (strcmp(selectedAccount, seperatedInput[2]) == 0) { //exact match with input
         //print to file
@@ -174,8 +162,6 @@ int main(int argc, char *argv[]) {
         stopProgramAfterInput();
     }
 
-
-
     //Open the inputfile and save it to inputFilePointer
     ifp = fopen(argv[1], "r");
     //Create a file to write to: outputFilePointer
@@ -184,7 +170,6 @@ int main(int argc, char *argv[]) {
     readInput(ifp, ofp);
     //close the output file
     fclose(ofp);
-
 
     //end the application
     exit(0);
