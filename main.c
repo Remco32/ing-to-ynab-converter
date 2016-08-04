@@ -154,7 +154,7 @@ void readSettings() {
         FILE *opSettings = fopen("settingsYNABConverter.ini", "w");
 
         //populate file
-        fprintf(opSettings, "AccountnumberToUse=NL12RABO3456789012");
+        fprintf(opSettings, "AccountnumberToUse=NL34INGB0001234567");
         printf("Setting file created in the directory of the program named 'settingsYNABConverter.ini'. Manually edit the file to add an account number to use with this program.\n");
         fclose(opSettings);
         stopProgramAfterInput();
